@@ -4,10 +4,7 @@
 int main()
 {
 	MeshEdit meshedit;
-	SurfaceMesh mesh;
-	mesh.read(meshedit.ori_mesh_path);
-	cout << mesh.n_vertices() << endl;
-
+	meshedit.Apply();
 
 
 	getchar();
