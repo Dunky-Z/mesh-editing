@@ -27,10 +27,14 @@ public:
 	Eigen::MatrixXf CaculateDivergence(SurfaceMesh & mesh);
 	void SolvePoissonFunction(SurfaceMesh & mesh, const Eigen::SparseMatrix<float> & A, Eigen::MatrixXf&  b);
 	void Apply();
+	void SetConstraintAndMoveVertex(SurfaceMesh & mesh);
 public:
 	const string res_mesh_path = "D:/ITabc/ITabc/mesh-editing/res/res_mesh01.obj";
-	//const string ori_mesh_path = "D:/ITabc/ITabc/mesh-editing/build/model/ori.obj";
-	const string ori_mesh_path = "D:/ITabc/ITabc/mesh-editing/build/model/Cylinder.obj";
+	const string ori_mesh_path = "D:/ITabc/ITabc/mesh-editing/build/model/ori-remesh.obj";
+	//const string ori_mesh_path = "D:/ITabc/ITabc/mesh-editing/build/model/Cylinder.obj";
+	//const string ori_mesh_path = "D:/ITabc/ITabc/mesh-editing/build/model/cube.obj";
+	std::vector<pmp::vec3> constrain_pos, move_pos;
+	std::vector<int> constraint_idx, move_idx;
 private:
 
 };

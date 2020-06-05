@@ -145,7 +145,7 @@ pmp::vec3 MeshEdit::CaculateGradientField(const SurfaceMesh & mesh, const Face &
 *@return     Eigen::MatrixX3d
 */Eigen::MatrixXf MeshEdit::CaculateDivergence(SurfaceMesh & mesh)
 {
-	int n_fix_anchors = 2, n_move_anchors = 1;
+	int num_constrain = constraint_idx.size(), num_move = move_idx.size();
 	size_t num_vertex = mesh.n_vertices();
 	Eigen::MatrixXf div_w(num_vertex, 3);
 
@@ -167,7 +167,7 @@ pmp::vec3 MeshEdit::CaculateGradientField(const SurfaceMesh & mesh, const Face &
 		div_w.coeffRef(v.idx(), 2) = div[2];
 	}
 
-	div_w.conservativeResize(num_vertex + n_fix_anchors + n_move_anchors, 3);
+	div_w.conservativeResize(num_vertex + num_constrain + num_move, 3);
 	std::cout << div_w.rows() << std::endl;
 
 	//------
@@ -180,30 +180,23 @@ pmp::vec3 MeshEdit::CaculateGradientField(const SurfaceMesh & mesh, const Face &
 	//vertex# 180	position[0.123524 - 0.299188 19.000000]
 	//vertex# 1368	position[1.458380 - 0.537347 10.012600]
 
-	//-----
-	//vertex# 1751		position[0.031232 0.207105 - 0.726708]
-	//vertex# 725		position[0.172421 - 0.069531 - 0.968907]
-	//vertex# 12080		position[0.172615 0.106908 0.648121]
-	//-----
-	//定义两个固定点和一个移动点
-	//std::vector<std::vector<float>> fixed_pos{ {0.031232,0.207105,-0.726708},{0.172421, -0.069531, -0.968907} };
-	//std::vector<std::vector<float>> move_pos{ {0.172615, 0.106908, 0.801} };
-	std::vector<std::vector<float>> fixed_pos{ {1.395040, 6.366990, 18.991699},{1.578030, -6.223970, 18.994101},{8.027470, -0.384723, 18.994600},{-4.404760, -0.984303 ,18.991899},{2.181440, -1.105770, 19.000099}, {0.123524, -0.299188 ,19.000000} };
-	std::vector<std::vector<float>> move_pos{ {1.458380, -0.537347, 5.0} };
+	////定义两个固定点和一个移动点
+	//std::vector<std::vector<float>> fixed_pos{ {1.395040, 6.366990, 18.991699},{1.578030, -6.223970, 18.994101},{8.027470, -0.384723, 18.994600},{-4.404760, -0.984303 ,18.991899},{2.181440, -1.105770, 19.000099}, {0.123524, -0.299188 ,19.000000} };
+	//std::vector<std::vector<float>> move_pos{ {1.458380, -0.537347, 5.0} };
 	// 用形变前坐标对固定锚点坐标进行赋值
-	for (auto i = 0; i < n_fix_anchors; i++)
+	for (auto i = 0; i < num_constrain; i++)
 	{
-		div_w.coeffRef(i + num_vertex, 0) = fixed_pos[i][0];
-		div_w.coeffRef(i + num_vertex, 1) = fixed_pos[i][1];
-		div_w.coeffRef(i + num_vertex, 2) = fixed_pos[i][2];
+		div_w.coeffRef(i + num_vertex, 0) = constrain_pos[i][0];
+		div_w.coeffRef(i + num_vertex, 1) = constrain_pos[i][1];
+		div_w.coeffRef(i + num_vertex, 2) = constrain_pos[i][2];
 	}
-
+	int expand = 0.1;
 	// 用形变后坐标对移动锚点坐标进行赋值
-	for (auto i = 0; i < n_move_anchors; i++)
+	for (auto i = 0; i < num_move; i++)
 	{
-		div_w.coeffRef(i + num_vertex + n_fix_anchors, 0) = move_pos[i][0];
-		div_w.coeffRef(i + num_vertex + n_fix_anchors, 1) = move_pos[i][1];
-		div_w.coeffRef(i + num_vertex + n_fix_anchors, 2) = move_pos[i][2];
+		div_w.coeffRef(i + num_vertex + num_constrain, 0) = move_pos[i][0];
+		div_w.coeffRef(i + num_vertex + num_constrain, 1) = move_pos[i][1];
+		div_w.coeffRef(i + num_vertex + num_constrain, 2) = move_pos[i][2] + expand;
 	}
 
 	return div_w;
@@ -221,26 +214,17 @@ void MeshEdit::SolvePoissonFunction(SurfaceMesh & mesh, const Eigen::SparseMatri
 {
 	Eigen::SparseMatrix<float> A = L;
 	int num_vertex = mesh.n_vertices();
-	int n_fix_anchors = 2, n_move_anchors = 1;
-	////约束点顶点下标
-	//int fix_anchor_idx[2] = { 1750,724 };
-	////移动点顶点下标
-	//int move_anchor_idx[1] = { 12079 };
-
-	//约束点顶点下标
-	int fix_anchor_idx[6] = { 733, 419, 580, 1106, 1158, 179 };
-	//移动点顶点下标
-	int move_anchor_idx[1] = { 1367 };
+	int num_constrain = constraint_idx.size(), num_move = move_idx.size();
 	//将A矩阵扩展而保持原有数据不变
-	A.conservativeResize(num_vertex + n_fix_anchors + n_move_anchors, num_vertex);
+	A.conservativeResize(num_vertex + num_constrain + num_move, num_vertex);
 	cout << A.rows() << endl;
 	cout << A.cols() << endl;
 
-	for (auto i = 0; i < n_fix_anchors; i++)
+	for (auto i = 0; i < num_constrain; i++)
 	{
 		for (auto j = 0; j < num_vertex; j++)
 		{
-			if (j == fix_anchor_idx[i])
+			if (j == constraint_idx[i])
 				A.coeffRef(num_vertex + i, j) = 1;
 			else
 				A.coeffRef(num_vertex + i, j) = 0;
@@ -248,14 +232,14 @@ void MeshEdit::SolvePoissonFunction(SurfaceMesh & mesh, const Eigen::SparseMatri
 	}
 
 	// 移动锚点
-	for (auto i = 0; i < n_move_anchors; i++)
+	for (auto i = 0; i < num_move; i++)
 	{
 		for (auto j = 0; j < num_vertex; j++)
 		{
-			if (j == move_anchor_idx[i])
-				A.coeffRef(num_vertex + n_fix_anchors + i, j) = 1;
+			if (j == move_idx[i])
+				A.coeffRef(num_vertex + num_constrain + i, j) = 1;
 			else
-				A.coeffRef(num_vertex + n_fix_anchors + i, j) = 0;
+				A.coeffRef(num_vertex + num_constrain + i, j) = 0;
 			//cout << j << endl;
 		}
 	}
@@ -305,7 +289,62 @@ void MeshEdit::Apply()
 	//		cout << dw.topRows(20)<< endl;
 	//	}
 	//}
+	meshedit.SetConstraintAndMoveVertex(mesh);
 	Eigen::MatrixXf b = meshedit.CaculateDivergence(mesh);
 	meshedit.CaculateLaplacianCotMatrix(mesh, A);
 	meshedit.SolvePoissonFunction(mesh, A, b);
+}
+
+
+/*!
+*@brief  设置约束的固定顶点和移动顶点
+*@param[out]
+*@param[in]  SurfaceMesh & mesh
+*@return     void
+*/void MeshEdit::SetConstraintAndMoveVertex(SurfaceMesh & mesh)
+{
+	for (auto v : mesh.vertices())
+	{
+		//--------------cubic---------------///
+		////设置z坐标小于-0.98的顶点为约束顶点。大概就是脚部
+		//if (mesh.position(v)[2] == 1.0)
+		//{
+		//	constraint_idx.push_back(v.idx());
+		//	constrain_pos.push_back(mesh.position(v));
+		//}
+		////设置z坐标大于0.63的顶点为可移动顶点，大概是头部位置
+		//if (mesh.position(v)[2] == -1.0)
+		//{
+		//	move_idx.push_back(v.idx());
+		//	move_pos.push_back(mesh.position(v));
+		//}
+
+		//--------------Cylinder---------------///
+		////圆柱体z坐标小于11固定
+		//if (mesh.position(v)[2] < 11.0)
+		//{
+		//	constraint_idx.push_back(v.idx());
+		//	constrain_pos.push_back(mesh.position(v));
+		//}
+		////设置z坐标大于18为移动
+		//if (mesh.position(v)[2] > 18.0)
+		//{
+		//	move_idx.push_back(v.idx());
+		//	move_pos.push_back(mesh.position(v));
+		//}
+
+		//--------------ori---------------///
+		//设置z坐标小于-0.98的顶点为约束顶点。大概就是脚部
+		if (mesh.position(v)[2] < -0.97)
+		{
+			constraint_idx.push_back(v.idx());
+			constrain_pos.push_back(mesh.position(v));
+		}
+		//设置z坐标大于0.63的顶点为可移动顶点，大概是头部位置
+		if (mesh.position(v)[2] > 0.6)
+		{
+			move_idx.push_back(v.idx());
+			move_pos.push_back(mesh.position(v));
+		}
+	}
 }
