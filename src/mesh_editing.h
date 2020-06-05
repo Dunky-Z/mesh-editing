@@ -24,10 +24,10 @@ public:
 	void CaculateLaplacianCotMatrix(const SurfaceMesh& mesh, Eigen::SparseMatrix<float> & L);
 	pmp::vec3 MeshEdit::CaculateGradientField(const SurfaceMesh & mesh, const Face & face);
 	pmp::vec3 CaculateGradientBu(const SurfaceMesh & mesh, const Face &face, const Vertex & vertex);
-	Eigen::MatrixXf CaculateDivergence(SurfaceMesh & mesh);
+	Eigen::MatrixXf CaculateDivergence(const SurfaceMesh & mesh);
 	void SolvePoissonFunction(SurfaceMesh & mesh, const Eigen::SparseMatrix<float> & A, Eigen::MatrixXf&  b);
 	void Apply();
-	void SetConstraintAndMoveVertex(SurfaceMesh & mesh);
+	void SetConstraintAndMoveVertex(const SurfaceMesh & mesh);
 public:
 	const string res_mesh_path = "D:/ITabc/ITabc/mesh-editing/res/res_mesh01.obj";
 	const string ori_mesh_path = "D:/ITabc/ITabc/mesh-editing/build/model/ori-remesh.obj";

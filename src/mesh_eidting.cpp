@@ -16,33 +16,8 @@ MeshEdit::~MeshEdit()
 *@param[in]  Eigen::SparseMatrix<float> & L  拉普拉斯矩阵，是个大型稀疏矩阵
 *@return     void
 */
-
 void MeshEdit::CaculateLaplacianCotMatrix(const SurfaceMesh& mesh, Eigen::SparseMatrix<float> & L)
 {
-	//int vn = mesh.n_vertices();
-	//int count0 = 0;
-	//vector<int> begin_N(vn);
-	//for (auto v : mesh.vertices()) {
-	//	begin_N[v.idx()] = count0;
-	//	count0 += mesh.valence(v) + 1;
-	//}
-	//typedef Eigen::Triplet<Scalar> T;
-	//vector<T> tripletList(count0);
-	////n*n
-	//for (auto v : mesh.vertices()) {
-	//	int i = 0;
-	//	float sum_weight = 0;
-	//	for (auto nei_v : SurfaceMesh::VertexAroundVertexCirculator(&mesh, v)) {
-	//		Edge e = mesh.find_edge(v, nei_v);
-	//		Scalar weight = 0.5 * cotan_weight(mesh, e);
-	//		tripletList[begin_N[v.idx()] + i + 1] = T(v.idx(), nei_v.idx(), -weight);
-	//		i++;
-	//		sum_weight += weight;
-	//	}
-	//	tripletList[begin_N[v.idx()]] = T(v.idx(), v.idx(), sum_weight);
-	//}
-	//L.setFromTriplets(tripletList.begin(), tripletList.end());
-
 	std::vector<Tri> tripletlist;
 	tripletlist.reserve(20);
 	const int p_num = mesh.n_vertices();
@@ -141,9 +116,9 @@ pmp::vec3 MeshEdit::CaculateGradientField(const SurfaceMesh & mesh, const Face &
 /*!
 *@brief  求每个顶点的散度
 *@param[out]
-*@param[in]  SurfaceMesh & mesh
-*@return     Eigen::MatrixX3d
-*/Eigen::MatrixXf MeshEdit::CaculateDivergence(SurfaceMesh & mesh)
+*@param[in]  SurfaceMesh & mesh	
+*@return     Eigen::MatrixX3d	顶点的三个方向的散度
+*/Eigen::MatrixXf MeshEdit::CaculateDivergence(const SurfaceMesh & mesh)
 {
 	int num_constrain = constraint_idx.size(), num_move = move_idx.size();
 	size_t num_vertex = mesh.n_vertices();
@@ -170,19 +145,6 @@ pmp::vec3 MeshEdit::CaculateGradientField(const SurfaceMesh & mesh, const Face &
 	div_w.conservativeResize(num_vertex + num_constrain + num_move, 3);
 	std::cout << div_w.rows() << std::endl;
 
-	//------
-
-	//vertex# 734	position[1.395040 6.366990 18.991699]
-	//vertex# 420	position[1.578030 - 6.223970 18.994101]
-	//vertex# 581	position[8.027470 - 0.384723 18.994600]
-	//vertex# 1107	position[-4.404760 - 0.984303 18.991899]
-	//vertex# 1158	position[2.181440 - 1.105770 19.000099]
-	//vertex# 180	position[0.123524 - 0.299188 19.000000]
-	//vertex# 1368	position[1.458380 - 0.537347 10.012600]
-
-	////定义两个固定点和一个移动点
-	//std::vector<std::vector<float>> fixed_pos{ {1.395040, 6.366990, 18.991699},{1.578030, -6.223970, 18.994101},{8.027470, -0.384723, 18.994600},{-4.404760, -0.984303 ,18.991899},{2.181440, -1.105770, 19.000099}, {0.123524, -0.299188 ,19.000000} };
-	//std::vector<std::vector<float>> move_pos{ {1.458380, -0.537347, 5.0} };
 	// 用形变前坐标对固定锚点坐标进行赋值
 	for (auto i = 0; i < num_constrain; i++)
 	{
@@ -265,43 +227,12 @@ void MeshEdit::SolvePoissonFunction(SurfaceMesh & mesh, const Eigen::SparseMatri
 }
 
 
-void MeshEdit::Apply()
-{
-	MeshEdit meshedit;
-	SurfaceMesh mesh;
-	mesh.read(ori_mesh_path);
-	cout << mesh.n_vertices() << endl;
-	int num_vertex = mesh.n_vertices();
-	Eigen::SparseMatrix<float> A(num_vertex, num_vertex);
-
-	//CaculateLaplacianCotMatrix(mesh, A);
-
-	//cout << A.topLeftCorner(50, 50) << endl;
-	//for (auto v : mesh.vertices())
-	//{
-	//	for (auto f : mesh.faces(v))
-	//	{
-	//		vec3 bu = meshedit.CaculateGradientBu(mesh, f, v);
-	//		cout << "bu :         " << bu << endl;
-	//		vec3 fu = meshedit.CaculateGradientField(mesh, f);
-	//		cout << "fu:    " << fu << endl;
-	//		Eigen::MatrixXf dw = CaculateDivergence(mesh, f);
-	//		cout << dw.topRows(20)<< endl;
-	//	}
-	//}
-	meshedit.SetConstraintAndMoveVertex(mesh);
-	Eigen::MatrixXf b = meshedit.CaculateDivergence(mesh);
-	meshedit.CaculateLaplacianCotMatrix(mesh, A);
-	meshedit.SolvePoissonFunction(mesh, A, b);
-}
-
-
 /*!
 *@brief  设置约束的固定顶点和移动顶点
 *@param[out]
 *@param[in]  SurfaceMesh & mesh
 *@return     void
-*/void MeshEdit::SetConstraintAndMoveVertex(SurfaceMesh & mesh)
+*/void MeshEdit::SetConstraintAndMoveVertex(const SurfaceMesh & mesh)
 {
 	for (auto v : mesh.vertices())
 	{
@@ -348,3 +279,24 @@ void MeshEdit::Apply()
 		}
 	}
 }
+
+
+/*!
+*@brief  主函数
+*@param[out] 
+*@return     void  
+*/void MeshEdit::Apply()
+{
+	MeshEdit meshedit;
+	SurfaceMesh mesh;
+	mesh.read(ori_mesh_path);
+	cout << mesh.n_vertices() << endl;
+	int num_vertex = mesh.n_vertices();
+	Eigen::SparseMatrix<float> A(num_vertex, num_vertex);
+
+	meshedit.SetConstraintAndMoveVertex(mesh);
+	Eigen::MatrixXf b = meshedit.CaculateDivergence(mesh);
+	meshedit.CaculateLaplacianCotMatrix(mesh, A);
+	meshedit.SolvePoissonFunction(mesh, A, b);
+}
+
