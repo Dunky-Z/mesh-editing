@@ -8,11 +8,12 @@
 #include <Eigen/Sparse>
 #include <Eigen/Cholesky>
 
-using namespace Eigen;
 using namespace pmp;
 using namespace std;
-using Point = pmp::Point;
+using namespace Eigen;
 
+
+using Point = pmp::Point;
 typedef Eigen::Triplet<float> Tri;
 
 
