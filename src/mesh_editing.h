@@ -30,10 +30,10 @@ public:
 	void Apply();
 	void SetConstraintAndMoveVertex(const SurfaceMesh & mesh);
 public:
-	const string res_mesh_path = "D:/ITabc/ITabc/mesh-editing/res/res_mesh01.obj";
-	const string ori_mesh_path = "D:/ITabc/ITabc/mesh-editing/build/model/ori-remesh.obj";
+	const string res_mesh_path = "D:/ITabc/ITabc/mesh-editing/res/res_mesh03.obj";
+	//const string ori_mesh_path = "D:/ITabc/ITabc/mesh-editing/build/model/ori-remesh.obj";
 	//const string ori_mesh_path = "D:/ITabc/ITabc/mesh-editing/build/model/Cylinder.obj";
-	//const string ori_mesh_path = "D:/ITabc/ITabc/mesh-editing/build/model/cube.obj";
+	const string ori_mesh_path = "D:/ITabc/ITabc/mesh-editing/build/model/cube.obj";
 	std::vector<pmp::vec3> constrain_pos, move_pos;
 	std::vector<int> constraint_idx, move_idx;
 private:

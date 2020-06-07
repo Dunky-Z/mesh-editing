@@ -116,7 +116,7 @@ pmp::vec3 MeshEdit::CaculateGradientField(const SurfaceMesh & mesh, const Face &
 /*!
 *@brief  求每个顶点的散度
 *@param[out]
-*@param[in]  SurfaceMesh & mesh	
+*@param[in]  SurfaceMesh & mesh
 *@return     Eigen::MatrixX3d	顶点的三个方向的散度
 */Eigen::MatrixXf MeshEdit::CaculateDivergence(const SurfaceMesh & mesh)
 {
@@ -152,7 +152,7 @@ pmp::vec3 MeshEdit::CaculateGradientField(const SurfaceMesh & mesh, const Face &
 		div_w.coeffRef(i + num_vertex, 1) = constrain_pos[i][1];
 		div_w.coeffRef(i + num_vertex, 2) = constrain_pos[i][2];
 	}
-	int expand = 0.1;
+	int expand = -5;
 	// 用形变后坐标对移动锚点坐标进行赋值
 	for (auto i = 0; i < num_move; i++)
 	{
@@ -175,35 +175,30 @@ pmp::vec3 MeshEdit::CaculateGradientField(const SurfaceMesh & mesh, const Face &
 void MeshEdit::SolvePoissonFunction(SurfaceMesh & mesh, const Eigen::SparseMatrix<float> & L, Eigen::MatrixXf&  b)
 {
 	Eigen::SparseMatrix<float> A = L;
-	int num_vertex = mesh.n_vertices();
-	int num_constrain = constraint_idx.size(), num_move = move_idx.size();
+	const int num_vertex = mesh.n_vertices();
+	const int num_constrain = constraint_idx.size(), num_move = move_idx.size();
 	//将A矩阵扩展而保持原有数据不变
 	A.conservativeResize(num_vertex + num_constrain + num_move, num_vertex);
 	cout << A.rows() << endl;
 	cout << A.cols() << endl;
 
-	for (auto i = 0; i < num_constrain; i++)
+	for (size_t i = num_vertex; i < A.rows(); ++i)
 	{
-		for (auto j = 0; j < num_vertex; j++)
+		for (size_t j = 0; j < A.cols(); j++)
 		{
-			if (j == constraint_idx[i])
-				A.coeffRef(num_vertex + i, j) = 1;
-			else
-				A.coeffRef(num_vertex + i, j) = 0;
+			A.coeffRef(i, j) = 0;
 		}
 	}
 
-	// 移动锚点
-	for (auto i = 0; i < num_move; i++)
+	for (size_t i = 0; i < num_constrain; i++)
 	{
-		for (auto j = 0; j < num_vertex; j++)
-		{
-			if (j == move_idx[i])
-				A.coeffRef(num_vertex + num_constrain + i, j) = 1;
-			else
-				A.coeffRef(num_vertex + num_constrain + i, j) = 0;
-			//cout << j << endl;
-		}
+		A.coeffRef(num_vertex + i, constraint_idx[i]) = 1;
+	}
+
+	//移动锚点
+	for (size_t i = 0; i < num_move; i++)
+	{
+		A.coeffRef(num_vertex + num_constrain + i, move_idx[i]) = 1;
 	}
 
 	A.makeCompressed();
@@ -237,18 +232,18 @@ void MeshEdit::SolvePoissonFunction(SurfaceMesh & mesh, const Eigen::SparseMatri
 	for (auto v : mesh.vertices())
 	{
 		//--------------cubic---------------///
-		////设置z坐标小于-0.98的顶点为约束顶点。大概就是脚部
-		//if (mesh.position(v)[2] == 1.0)
-		//{
-		//	constraint_idx.push_back(v.idx());
-		//	constrain_pos.push_back(mesh.position(v));
-		//}
-		////设置z坐标大于0.63的顶点为可移动顶点，大概是头部位置
-		//if (mesh.position(v)[2] == -1.0)
-		//{
-		//	move_idx.push_back(v.idx());
-		//	move_pos.push_back(mesh.position(v));
-		//}
+		//设置z坐标小于-0.98的顶点为约束顶点。大概就是脚部
+		if (mesh.position(v)[2] == 1.0)
+		{
+			constraint_idx.push_back(v.idx());
+			constrain_pos.push_back(mesh.position(v));
+		}
+		//设置z坐标大于0.63的顶点为可移动顶点，大概是头部位置
+		if (mesh.position(v)[2] == -1.0)
+		{
+			move_idx.push_back(v.idx());
+			move_pos.push_back(mesh.position(v));
+		}
 
 		//--------------Cylinder---------------///
 		////圆柱体z坐标小于11固定
@@ -266,25 +261,25 @@ void MeshEdit::SolvePoissonFunction(SurfaceMesh & mesh, const Eigen::SparseMatri
 
 		//--------------ori---------------///
 		//设置z坐标小于-0.98的顶点为约束顶点。大概就是脚部
-		if (mesh.position(v)[2] < -0.97)
-		{
-			constraint_idx.push_back(v.idx());
-			constrain_pos.push_back(mesh.position(v));
-		}
-		//设置z坐标大于0.63的顶点为可移动顶点，大概是头部位置
-		if (mesh.position(v)[2] > 0.6)
-		{
-			move_idx.push_back(v.idx());
-			move_pos.push_back(mesh.position(v));
-		}
+		//if (mesh.position(v)[2] < -0.97)
+		//{
+		//	constraint_idx.push_back(v.idx());
+		//	constrain_pos.push_back(mesh.position(v));
+		//}
+		////设置z坐标大于0.63的顶点为可移动顶点，大概是头部位置
+		//if (mesh.position(v)[2] > 0.6)
+		//{
+		//	move_idx.push_back(v.idx());
+		//	move_pos.push_back(mesh.position(v));
+		//}
 	}
 }
 
 
 /*!
 *@brief  主函数
-*@param[out] 
-*@return     void  
+*@param[out]
+*@return     void
 */void MeshEdit::Apply()
 {
 	MeshEdit meshedit;
