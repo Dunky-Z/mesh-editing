@@ -37,6 +37,5 @@ public:
 	std::vector<pmp::vec3> constrain_pos, move_pos;
 	std::vector<int> constraint_idx, move_idx;
 private:
-
 };
 
